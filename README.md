@@ -4,16 +4,21 @@
 - [Architecture and Configuration](#architecture-and-configuration)  
 - [How to Apply and Manage](#how-to-apply-and-manage)  
 - [Implemented DevSecOps Practices](#implemented-devsecops-practices)  
-  - [RBAC: Access Control](#rbac-access-control)  
   - [AppProjects: Environment Isolation and Access Control](#appprojects-environment-isolation-and-access-control)  
-  - [Linting and Validation](#linting-and-validation)
+  - [SSO: Purpose, Preparation, Implementation](#sso-purpose-preparation-implementation)  
+    - [Purpose](#purpose)  
+    - [Configuration Steps (GitHub)](#configuration-steps-github)  
+    - [Support for Two Authentication Methods](#support-for-two-authentication-methods)  
+  - [RBAC: Access Segmentation](#rbac-access-segmentation)  
+    - [Important Condition](#important-condition)  
+- [Linting and Validation](#linting-and-validation)
 
 ---
 
 # About the Project
 
 This repository serves as the core GitOps configuration for Argo CD in the [`health-api`](https://github.com/vikgur/health-api-for-microservice-stack-english-vers) web application.  
-It defines all critical Argo CD components — **RBAC policy**, **AppProjects**, Git **repository integrations**, controller settings, and custom health checks.
+It defines all critical Argo CD components — **AppProjects**, **Authentication (SSO or local login) in Argo CD**, **RBAC policy**, Git **repository integrations**, controller settings, and custom health checks.
 
 Argo CD does not manage this repository — instead, **this repository manages Argo CD**.
 
@@ -69,8 +74,73 @@ kustomize build . | kubectl apply -f -
 
 ---
 
-# Внедренные DevSecOps практики
+# Implemented DevSecOps Practices
 The repository implements a secure, declarative access control configuration for Argo CD.
+
+## AppProjects: Environment Isolation and Access Control
+
+Access restrictions are defined in the `argocd/projects/` directory:
+
+- strict binding to specific namespaces and Git repositories for each environment (`stage`, `prod`)
+- orphaned resource warnings enabled (`orphanedResources.warn`)
+- a sync window is configured for `prod` — deployments are only allowed during working hours
+
+## SSO: Purpose, Preparation, Implementation
+
+### Purpose
+
+**Goal:** Secure centralized login to Argo CD via GitHub, without manual logins.
+
+* User logs in via GitHub OAuth
+* Argo CD receives `email`, `username`, `groups`
+* Groups (`g:devops`, `g:qa`) control access via `argocd-rbac-cm.yaml`
+
+### Setup Steps (GitHub)
+
+1. **Register an OAuth App in GitHub:**
+
+   * Go to: `GitHub → Settings → Developer settings → OAuth Apps`
+   * Click **New OAuth App**:
+
+     * Application Name: `Argo CD SSO`
+     * Homepage URL: `https://argocd.health.gurko.ru`
+     * Authorization callback URL for OIDC:
+       `https://argocd.health.gurko.ru/auth/callback`
+     * Authorization callback URL for DEX:
+       `https://argocd.health.gurko.ru/api/dex/callback`
+
+2. **Copy:**
+
+   * `Client ID`
+   * `Client Secret`
+
+3. **Paste into [ansible-gitops-bootstrap-health-api](https://github.com/Vikgur/ansible-gitops-bootstrap-health-api-english-vers/) in [ansible/group\_vars/master.yaml](https://github.com/Vikgur/ansible-gitops-bootstrap-health-api-english-vers/-/blob/main/ansible/group_vars/master.yaml):**
+
+   ```yaml
+   github_oauth_client_id: YOUR_CLIENT_ID
+   github_oauth_client_secret: YOUR_CLIENT_SECRET
+   argocd_sso_mode: oidc # or dex
+   ```
+
+### Support for Two Authentication Methods
+
+The repository contains two independent authentication approaches for Argo CD:
+
+* **OIDC directly via GitHub (chosen as the main one)** — used in production, configured in `argocd-cm.yaml`, without additional components. In the linked repository [ansible-gitops-bootstrap-health-api](https://github.com/Vikgur/ansible-gitops-bootstrap-health-api-english-vers) in [ansible/group_vars/master.yaml](https://github.com/Vikgur/ansible-gitops-bootstrap-health-api-english-vers/-/blob/main/ansible/group_vars/master.yaml), `argocd_namespace: argocd` is chosen.
+* **Dex + GitHub OAuth** — an additional demonstration option for portfolio purposes, located in `argocd-cm-dex.yaml`.
+
+Both files can be applied manually via `kubectl apply`, depending on the required configuration.
+
+The active option is specified via the file `argocd/cm/argocd-cm-*.yaml`, others are commented out in `kustomization.yaml`
+
+#### Why OIDC was chosen:
+
+* Simplifies architecture: fewer components = fewer failure points.
+* Configured directly in `argocd-cm.yaml` via `oidc.config`.
+* Better suited for cloud CI/CD systems (GitHub, github, Okta).
+* Used in production clusters of large companies.
+
+Dex is a more “architectural” method, used if a company has multiple providers (GitHub, github, LDAP, etc.). Dex is kept in the project **to demonstrate an alternative option**.
 
 ## RBAC: Access Control
 
@@ -86,13 +156,10 @@ Roles are assigned to user groups:
 
 This setup restricts access to `prod`, allows QA to work in `stage`, and prevents unintended actions outside a user's scope. All permissions are managed declaratively through GitOps.
 
-## AppProjects: Environment Isolation and Access Control
+### Important Condition
 
-Access restrictions are defined in the `argocd/projects/` directory:
-
-- strict binding to specific namespaces and Git repositories for each environment (`stage`, `prod`)
-- orphaned resource warnings enabled (`orphanedResources.warn`)
-- a sync window is configured for `prod` — deployments are only allowed during working hours
+`g:devops`, `g:qa` must be GitHub Teams when using organizations.  
+If logging in with individual users — use `login:<user>` instead of `g:...`.
 
 ## Linting and Validation
 

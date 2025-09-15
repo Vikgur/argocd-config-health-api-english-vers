@@ -1,7 +1,9 @@
 resources:
-  - argocd/cm/argocd-cm.yaml
+  - argocd/cm/argocd-cm-oidc.yaml
+  # - argocd/cm/argocd-cm-dex.yaml if used DEX
   - argocd/cm/argocd-rbac-cm.yaml
   - argocd/projects/project-stage.yaml
   - argocd/projects/project-prod.yaml
   - argocd/repos/repo-gitops-apps.yaml
   - argocd/repos/repo-helm-charts.yaml
+  - ingress/argocd.ingress.yaml
