@@ -11,21 +11,23 @@
     - [Support for Two Authentication Methods](#support-for-two-authentication-methods)  
   - [RBAC: Access Segmentation](#rbac-access-segmentation)  
     - [Important Condition](#important-condition)  
-- [Linting and Validation](#linting-and-validation)
+  - [Telegram Notifications Setup](#telegram-notifications-setup)  
+    - [Notification Logic](#notification-logic)  
+    - [How to Get the Token and Chat ID](#how-to-get-the-token-and-chat-id)
+  - [Linting and Validation](#linting-and-validation)
 
 ---
 
 # About the Project
 
-This repository serves as the core GitOps configuration for Argo CD in the [`health-api`](https://github.com/vikgur/health-api-for-microservice-stack-english-vers) web application.  
-It defines all critical Argo CD components — **AppProjects**, **Authentication (SSO or local login) in Argo CD**, **RBAC policy**, Git **repository integrations**, controller settings, and custom health checks.
+This repository is the **core GitOps configuration for Argo CD** powering the [`health-api`](https://github.com/vikgur/health-api-for-microservice-stack) web application.  
+It defines the foundation of platform management: **AppProjects**, **SSO/local authentication**, **RBAC policies**, Git repository integrations, controller parameters, and custom health checks.  
 
-Argo CD does not manage this repository — instead, **this repository manages Argo CD**.
+A built-in **Telegram notification system** ensures end-to-end feedback: successful deployments (**on-deployed**) and alerts on health degradation (**on-health-degraded**).  
 
-The configuration is applied declaratively via `kustomize build` and `kubectl apply` as part of an Ansible-based infrastructure pipeline.
+Crucially, **Argo CD does not manage this repository — this repository manages Argo CD**, defining its configuration and behavior.  
 
-Deployment and automation are handled through the dedicated Ansible project:  
-[`ansible-gitops-bootstrap-health-api`](https://github.com/vikgur/ansible-gitops-bootstrap-health-api-english-vers)
+Configuration is applied declaratively using **Kustomize** (`kustomize build` + `kubectl apply`), integrated into the infrastructure pipeline based on Ansible: [`ansible-gitops-bootstrap-health-api`](https://github.com/vikgur/ansible-gitops-bootstrap-health-api-english-vers).
 
 ---
 
@@ -160,6 +162,49 @@ This setup restricts access to `prod`, allows QA to work in `stage`, and prevent
 
 `g:devops`, `g:qa` must be GitHub Teams when using organizations.  
 If logging in with individual users — use `login:<user>` instead of `g:...`.
+
+## Telegram Notifications Setup
+
+### Notification Logic
+
+This repository includes a notification system integrated with Telegram:
+
+* **on-deployed** — sent after a successful application deployment
+* **on-health-degraded** — sent when application status becomes Degraded
+
+Notification logic is defined in `argocd/notifications/triggers.yaml`, templates in `argocd/notifications/templates.yaml`, and the Telegram channel is configured via `argocd/notifications/cm.yaml` and `argocd/notifications/secret.yaml`.
+
+> The values `telegram_token` and `telegram_chat_id` are provided via the `argocd/notifications/secret.yaml` file.
+
+### How to Get the Token and Chat ID
+
+**1. `TELEGRAM_TOKEN`**
+Telegram bot token:
+
+* Create a bot via `@BotFather` using `/newbot`
+* Example name: `argocd_notifications_bot`
+* You will receive a token like `123456789:AAFx8Z...`
+
+**2. `TELEGRAM_CHAT_ID`**
+The chat ID where messages will be sent:
+
+* Add the bot to a group or send it a direct message
+
+* Run:
+
+  ```bash
+  curl "https://api.telegram.org/bot<TELEGRAM_TOKEN>/getUpdates"
+  ```
+
+* In the response, find:
+
+  ```json
+  "chat": {
+    "id": -123456789
+  }
+  ```
+
+* Use this value as your `TELEGRAM_CHAT_ID`
 
 ## Linting and Validation
 

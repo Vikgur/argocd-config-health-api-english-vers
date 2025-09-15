@@ -6,4 +6,9 @@ resources:
   - argocd/projects/project-prod.yaml
   - argocd/repos/repo-gitops-apps.yaml
   - argocd/repos/repo-helm-charts.yaml
-  - ingress/argocd.ingress.yaml
+  - argocd/ingress/argocd.ingress.yaml
+  - argocd/notifications/cm.yaml
+  - argocd/notifications/triggers.yaml
+  - argocd/notifications/templates.yaml
+  - argocd/notifications/subscriptions.yaml
+  - argocd/notifications/secret.yaml
