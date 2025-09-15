@@ -20,18 +20,21 @@
 
 # About the Project
 
-This repository is the **core GitOps configuration for Argo CD** powering the [`health-api`](https://github.com/vikgur/health-api-for-microservice-stack) web application.  
-It defines the foundation of platform management: **AppProjects**, **SSO/local authentication**, **RBAC policies**, Git repository integrations, controller parameters, and custom health checks.  
+## About the Project
 
-A built-in **Telegram notification system** ensures end-to-end feedback: successful deployments (**on-deployed**) and alerts on health degradation (**on-health-degraded**).  
+This repository is the **core GitOps configuration of Argo CD** for the [`health-api`](https://github.com/vikgur/health-api-for-microservice-stack-english-vers) web application. It establishes the foundation of platform management: defining **AppProjects**, configuring **SSO/local authentication**, setting up **RBAC policies**, connecting required **Git repositories**, and specifying controller parameters along with custom health checks. Additionally, it integrates a **Telegram notification system** that provides a full feedback cycle — from messages about successful deployments (**on-deployed**) to alerts on degraded application states (**on-health-degraded**).  
 
-Crucially, **Argo CD does not manage this repository — this repository manages Argo CD**, defining its configuration and behavior.  
+The key architectural principle is that **Argo CD does not manage this repository — this repository manages Argo CD**, defining its configuration, security, and behavior. Configuration is applied declaratively through **Kustomize** (`kustomize build` + `kubectl apply`), embedded in the infrastructure pipeline powered by Ansible: [`ansible-gitops-bootstrap-health-api`](https://github.com/vikgur/ansible-gitops-bootstrap-health-api-english-vers).  
 
-Configuration is applied declaratively using **Kustomize** (`kustomize build` + `kubectl apply`), integrated into the infrastructure pipeline based on Ansible: [`ansible-gitops-bootstrap-health-api`](https://github.com/vikgur/ansible-gitops-bootstrap-health-api-english-vers).
+Through the **[`apps/platform-apps.yaml`](apps/platform-apps.yaml)** object, this repository also connects the infrastructure stack [`gitops-argocd-platform-health-api`](https://github.com/vikgur/gitops-argocd-platform-health-api-english-vers) following the *App of Apps* pattern. This ensures that core system components (ingress-nginx, cert-manager, external-secrets, etc.) are provisioned and maintained by Argo CD automatically, without direct Ansible involvement.
 
 ---
 
 # Architecture and Configuration
+
+* **System applications integration** (`apps/platform-apps.yaml`)  
+  * Implements the link to the [`gitops-argocd-platform-health-api`](https://github.com/vikgur/gitops-argocd-platform-health-api-english-vers) repository, which defines all infrastructure components (ingress-nginx, cert-manager, external-secrets, monitoring, etc.).  
+  * This ensures a clear separation: Argo CD configuration is stored here, while the platform installation is maintained in a dedicated repository.  
 
 * **AppProjects** (`argocd/projects/`)
 
