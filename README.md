@@ -14,7 +14,13 @@
   - [Telegram Notifications Setup](#telegram-notifications-setup)  
     - [Notification Logic](#notification-logic)  
     - [How to Get the Token and Chat ID](#how-to-get-the-token-and-chat-id)
-  - [Linting and Validation](#linting-and-validation)
+  - [Linting, validation and security](#linting-validation-and-security)  
+    - [.yamllint.yml](#yamllintyml)  
+    - [.checkov.yaml](#checkovyaml)  
+    - [policy/argo/secure-apps.rego](#policyargosecure-appsrego)  
+    - [policy/argo/secure-rbac.rego](#policyargosecure-rbacrego)  
+    - [.gitleaks.toml](#gitleakstoml)  
+    - [.pre-commit-config.yaml](#pre-commit-configyaml)  
 
 ---
 
@@ -209,21 +215,64 @@ The chat ID where messages will be sent:
 
 * Use this value as your `TELEGRAM_CHAT_ID`
 
-## Linting and Validation
+## Linting, validation and security
 
-Following the GitOps approach, the Argo CD configuration is written as declarative code.  
-To ensure structural integrity, readability, and compliance with Kubernetes specifications, basic linters are integrated into the project.  
-The checks are minimal but essential — they guarantee that any configuration changes are automatically validated before being applied.
+Within the GitOps approach, the Argo CD configuration is defined as declarative code.  
+To ensure structural integrity, readability, and compliance with Kubernetes specifications, DevSecOps checks have been implemented.  
+These checks are mandatory — they guarantee that any changes to the Argo CD configuration undergo automatic validation and security control before being applied.
 
-The repository includes pre-commit hooks to validate YAML and Kubernetes manifests:
+### `.yamllint.yml`
 
-- **yamllint** — validates YAML structure and syntax  
-- **ct lint** — validates Kubernetes manifests (schema correctness, key usage, etc.)
+**Purpose:**  
+Checks YAML syntax and style.  
+Prevents formatting errors and enforces a unified standard.
 
-The hook configuration is defined in [.pre-commit-config.yaml](./.pre-commit-config.yaml) and runs automatically on each commit.
+---
 
-Manual run:
+### `.checkov.yaml`
 
-```bash
-pre-commit run --all-files
-```
+**Purpose:**  
+Analyzes Kubernetes manifests with Checkov.  
+Detects insecure practices in Argo CD objects and related resources (missing resources, use of `latest`, etc.).
+
+---
+
+### `policy/argo/secure-apps.rego`
+
+**Purpose:**  
+OPA policies for Argo CD `Application`.  
+They prohibit:  
+- use of `targetRevision: HEAD`,  
+- disabling `prune` and `selfHeal` in `syncPolicy`.  
+This ensures correct and secure application configuration.
+
+---
+
+### `policy/argo/secure-rbac.rego`
+
+**Purpose:**  
+OPA policies for RBAC (`argocd-rbac-cm`).  
+They prohibit:  
+- use of wildcard `*` in policies,  
+- absence of explicit roles.  
+This prevents excessive privileges and strengthens access control.
+
+---
+
+### `.gitleaks.toml`
+
+**Purpose:**  
+Scans commits and files for secrets (e.g., `notifications/secret.yaml`).  
+Prevents leaks of tokens, passwords, and other sensitive data into Git.
+
+---
+
+### `.pre-commit-config.yaml`
+
+**Purpose:**  
+Runs automated checks before commit (`yamllint`, `checkov`, `conftest`, `gitleaks`).  
+Helps detect issues before changes reach the repository.
+
+---
+
+> As a result, the full DevSecOps cycle is ensured: from YAML syntax and secret scanning to enforcing Argo CD and RBAC security policies.

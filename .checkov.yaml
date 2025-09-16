@@ -1,0 +1,15 @@
+quiet: true
+download-external-modules: true
+
+framework:
+  - kubernetes
+
+skip-check:
+  - CKV_K8S_21  # Ingress should specify host
+
+evaluate-variables: true
+
+# Paths to scan
+directory:
+  - apps
+  - argocd
